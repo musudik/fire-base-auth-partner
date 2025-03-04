@@ -1,33 +1,57 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is authenticated
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Helper function to check if user is accessing their own document
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Admins collection rules
+    match /admins/{adminId} {
+      allow read: if isOwner(adminId);
+      // Only allow admin creation through the admin signup page
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
     // Partners collection rules
     match /partners/{partnerId} {
-      allow read: if isAuthenticated();  // Any authenticated user can read partner info
-      allow write: if isOwner(partnerId); // Only partner can modify their own doc
+      allow read: if isAuthenticated();  // Any authenticated user can read
+      allow create: if isAuthenticated(); // Allow partner signup
+      allow update: if isOwner(partnerId) || isAdmin(); // Partner can update own doc, admin can update any
+      allow delete: if isAdmin(); // Only admin can delete partners
     }
 
     // Clients collection rules
     match /clients/{clientId} {
-      allow read: if isAuthenticated(); // Any authenticated user can read client info
-      allow write: if isOwner(clientId) || 
-                  exists(/databases/$(database)/documents/partners/$(request.auth.uid)); // Client or any partner can modify
+      allow read: if isAuthenticated(); // Any authenticated user can read
+      allow create: if exists(/databases/$(database)/documents/partners/$(request.auth.uid)) || isAdmin();
+      allow update: if isOwner(clientId) || 
+                   exists(/databases/$(database)/documents/partners/$(request.auth.uid)) || 
+                   isAdmin();
+      allow delete: if isAdmin(); // Only admin can delete clients
     }
 
-    // Forms collection rules (if you have one)
+    // Forms collection rules
     match /forms/{formId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow write: if isAuthenticated() || isAdmin();
+    }
+
+    // Partner approval status can only be modified by admin
+    match /partners/{partnerId} {
+      allow update: if isAdmin() || 
+                   (isOwner(partnerId) && 
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['approvalStatus', 'activationStatus']));
     }
   }
-} 
+}

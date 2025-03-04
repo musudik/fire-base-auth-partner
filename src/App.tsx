@@ -6,6 +6,9 @@ import ClientDashboard from './components/dashboard/ClientDashboard';
 import PrivateRoute from './components/auth/PrivateRoute';
 import VerifyEmail from './components/auth/VerifyEmail';
 import FirebaseAction from './components/auth/FirebaseAction';
+import AdminLogin from './components/auth/AdminLogin';
+import AdminSignup from './components/auth/AdminSignup';
+import AdminDashboard from './components/admin/AdminDashboard';
 
 function App() {
   return (
@@ -32,6 +35,9 @@ function App() {
         <Route path="/partner-activation" element={<VerifyEmail />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/__/auth/action" element={<FirebaseAction />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/signup" element={<AdminSignup />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
