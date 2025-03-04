@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is accessing their own document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Partners collection rules
+    match /partners/{partnerId} {
+      allow read: if isAuthenticated();  // Any authenticated user can read partner info
+      allow write: if isOwner(partnerId); // Only partner can modify their own doc
+    }
+
+    // Clients collection rules
+    match /clients/{clientId} {
+      allow read: if isAuthenticated(); // Any authenticated user can read client info
+      allow write: if isOwner(clientId) || 
+                  exists(/databases/$(database)/documents/partners/$(request.auth.uid)); // Client or any partner can modify
+    }
+
+    // Forms collection rules (if you have one)
+    match /forms/{formId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+  }
+} 
